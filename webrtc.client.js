@@ -2,14 +2,13 @@ let dataChannel  = null;
 let interval = null;
 
 function onMessage({ data }) {
-    console.log( "data");
+    console.log( "Incoming Data");
     if (data === 'pong') {
-      console.log('received pong');
+      console.log('Received a pong message');
     }
   }
 
 function onDataChannel({ channel }) {
-    console.log( "Is there a channel?" );
   if (channel.label !== 'ping-pong') {
       console.log( "Not a ping-pong channel");
     return;
@@ -17,36 +16,33 @@ function onDataChannel({ channel }) {
 
   dataChannel = channel;
   dataChannel.addEventListener('message', onMessage);
+  console.log( "Sending a ping message" );
+  dataChannel.send('ping');
 
-  interval = setInterval(() => {
-    console.log('sending ping');
-    dataChannel.send('ping');
-  }, 1000);
 }
 
 async function createConnectio()
 {
     console.log( "Creating connection" );
     const response = await fetch("connection").then( response => response.json());
-    console.log( "setting remote description" );
+    console.log("Got response!", "Setting remote description" );
 
     const localPeerConnection = new RTCPeerConnection({
       sdpSemantics: 'unified-plan'
     });
 
-
     await localPeerConnection.setRemoteDescription( response.offer );
 
-    console.log( "adds event listening" );
+    console.log( "Add event listener to the datachannel" );
     localPeerConnection.addEventListener('datachannel', onDataChannel);
 
-    console.log( "Create answer!" );
+    console.log( "Create an answer to the server!" );
     const answer = await localPeerConnection.createAnswer();
 
-    console.log( "setting localDescription");
+    console.log( "Setting up localDescription");
     await localPeerConnection.setLocalDescription(answer);
     
-    await fetch( `connection/${response.id}`,
+    fetch( `connection/${response.id}`,
     { 
         method: "POST", 
         body: JSON.stringify( localPeerConnection.localDescription ), 
@@ -54,8 +50,9 @@ async function createConnectio()
     });
 
     setTimeout(() => {
-        console.log( localPeerConnection.connectionState );
-        console.log( localPeerConnection );
+        console.log( "Connection state after 2 seconds" );
+        console.log( "Normal connectionState ?", localPeerConnection.connectionState );
+        console.log( "iceConnectionState ?", localPeerConnection.iceConnectionState );
     }, 2000)
 }
 

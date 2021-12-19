@@ -1,5 +1,5 @@
 import express from 'express';
-import { uuid } from 'uuidv4'
+import { v4 } from 'uuid'
 import wrtc from 'wrtc';
 import { join, resolve } from 'path';
 
@@ -45,31 +45,44 @@ app.get("/connection", async (request, response, next) => {
 
     function onMessage( { data } )
     {
-        console.log( "data came!" );
+        console.log( "onMessage" );
         if( data === "ping")
         {
+            console.log( "Got ping message. Sending pong" )
             dataChannel.send( "pong" );
         }
     }
+
     dataChannel.addEventListener("message", onMessage );
     // Create offer
+    console.log( "Creating offer" );
     const offer = await peerConnection.createOffer();
     // Apply offer to your localDescription (????? WHY????)
+    console.log( "Applying offer to connection" );
     await peerConnection.setLocalDescription(offer);
     // Wait for ICE Candidate gatherings is complete
+    console.log( "Genereate IceGathering" );
     await waitUntilIceGatheringStateComplete(peerConnection);
-    const id = uuid();
+    const id = v4();
     // Send localDescription as offer to client. (WTF??? not the offer we created???)
+    console.log( `Saving id: ${id} to the connections list` );
+    connections.set( id, peerConnection );
     response.json( { offer: peerConnection.localDescription, id: id } ).end();
 } );
 
 app.post("/connection/:id", async( request, response, next) => 
 {
-    console.log( request.body );
+    console.log( "Incoming connection", `ID: ${ request.params.id }`, request.body );
     const peerConnection = connections.get( request.params.id );
+    if( peerConnection == null )
+    {
+        return response.status( 400 ).end();
+    }
+    console.log( "Accepting the connection" );
     await peerConnection.setRemoteDescription( request.body );
+    console.log( "Updating the peer connection in the connection list" );
     connections.set( request.params.id, peerConnection );
-    response.json(peerConnection.remoteDescription).end();
+    response.json( peerConnection.remoteDescription ).end();
 } );
 
 app.listen(3000, () => {
