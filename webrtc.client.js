@@ -11,6 +11,7 @@ function onMessage({ data }) {
 function onDataChannel({ channel }) {
   if (channel.label !== 'ping-pong') {
       console.log( "Not a ping-pong channel");
+      channel.send("Hello world!");
     return;
   }
 
@@ -42,11 +43,16 @@ async function createConnectio()
     console.log( "Setting up localDescription");
     await localPeerConnection.setLocalDescription(answer);
     
-    fetch( `connection/${response.id}`,
+    await fetch( `connection/${response.id}`,
     { 
         method: "POST", 
         body: JSON.stringify( localPeerConnection.localDescription ), 
         headers: { 'Content-Type': 'application/json'}
+    });
+
+    await fetch( `addDataChannel/${response.id}`,
+    {
+      method: "POST"
     });
 
     setTimeout(() => {

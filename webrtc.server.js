@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { request } from 'express';
 import { v4 } from 'uuid'
 import wrtc from 'wrtc';
 import { join, resolve } from 'path';
@@ -68,6 +68,27 @@ app.get("/connection", async (request, response, next) => {
     console.log( `Saving id: ${id} to the connections list` );
     connections.set( id, peerConnection );
     response.json( { offer: peerConnection.localDescription, id: id } ).end();
+} );
+
+app.post( "/addDataChannel/:id", async( request, response, next ) => {
+    console.log( "Incoming addDataChannel", `ID: ${ request.params.id }`, request.body );
+    const peerConnection = connections.get( request.params.id );
+    if( peerConnection == null )
+    {
+        return response.status( 400 ).end();
+    }
+    const dataChannel = peerConnection.createDataChannel( "new-channel" );
+
+    function newChannelOnMessage( { data } ) 
+    {
+        console.log( "newChannelOnMessage", data );
+    } 
+
+    dataChannel.addEventListener( "message", newChannelOnMessage );
+
+    connections.set( request.params.id, peerConnection );
+
+    response.end();
 } );
 
 app.post("/connection/:id", async( request, response, next) => 
